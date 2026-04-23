@@ -15,88 +15,11 @@ const int PORT = 8080;
 const int MAX_EVENTS = 64;
 const int BUFFER_SIZE = 1024;
 
-enum ClientState {
-    STATE_NICKNAME,
-    STATE_CHAT
-};
 
-class Client {
-public:
-    int fd;
-    ClientState state;
-    std::string nickname;
-    std::string in_buffer;
-    std::string out_buffer;
-    bool want_write;
-
-    Client(int _fd)
-        : fd(_fd)
-        , state(STATE_NICKNAME)
-        , want_write(false)
-    {}
-
-    ~Client() { if (fd != -1) close(fd); }
-
-    Client(const Client&) = delete;
-    Client& operator=(const Client&) = delete;
-
-    void queue_message(const std::string& msg, int epoll_fd) {
-        out_buffer += msg;
-        if (!want_write && !out_buffer.empty()) {
-            want_write = true;
-            struct epoll_event ev;
-            ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
-            ev.data.ptr = this;
-            if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1) {
-                perror("epoll_ctl MOD (add EPOLLOUT)");
-            }
-        }
-    }
-
-    bool handle_write(int epoll_fd) {
-        if (out_buffer.empty()) {
-            if (want_write) {
-                want_write = false;
-                struct epoll_event ev;
-                ev.events = EPOLLIN | EPOLLET;
-                ev.data.ptr = this;
-                if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1) {
-                    perror("epoll_ctl MOD (remove EPOLLOUT)");
-                }
-            }
-            return true;
-        }
-
-        ssize_t written = write(fd, out_buffer.c_str(), out_buffer.size());
-        if (written == -1) {
-            if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                return false;
-            }
-            return false;
-        }
-
-        out_buffer.erase(0, written);
-
-        if (out_buffer.empty() && want_write) {
-            want_write = false;
-            struct epoll_event ev;
-            ev.events = EPOLLIN | EPOLLET;
-            ev.data.ptr = this;
-            if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1) {
-                perror("epoll_ctl MOD (remove EPOLLOUT)");
-            }
-        }
-        return true;
-    }
-};
 
 std::unordered_map<int, std::unique_ptr<Client>> clients;
 
-bool set_nonblocking(int fd) {
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) return false;
-    return fcntl(fd, F_SETFL, flags | O_NONBLOCK) != -1;
-}
+
 
 void send_disconnect_notification(const std::string nickname, int epoll_fd) {
     for (auto& pair : clients) {
