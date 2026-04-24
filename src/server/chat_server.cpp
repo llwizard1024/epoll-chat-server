@@ -1,6 +1,7 @@
 #include "server/chat_server.h"
 
 #include "network/socket_utils.h"
+#include "command/command_handler.h"
 
 #include <sys/epoll.h>
 #include <iostream>
@@ -200,11 +201,9 @@ void ChatServer::process_message(Client* client, const std::string& line) {
 
         //Server log
         std::cout << "[SERVER] Клиент fd=" << client->fd << " установил ник: " << client->nickname << std::endl;
-    } else if (client->state == ClientState::STATE_CHAT) {
-        std::string chat_msg = "[" + client->nickname + "]: " + line + "\n";
-        broadcast(chat_msg, client);
-
-        //Server log
-        std::cout << "[SERVER] Сообщение от " << client->nickname << ": " << line << std::endl;
+        return;
     }
+
+    CommandHandler handler(*this);
+    handler.execute(client, line);
 }

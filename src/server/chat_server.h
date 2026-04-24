@@ -10,6 +10,8 @@ class ChatServer {
     int epoll_fd_;
     int port_;
     std::unordered_map<int, std::unique_ptr<Client>> clients_;
+
+    friend class CommandHandler;
 public:
     static constexpr const int MAX_EVENTS = 64;
     static constexpr const int BUFFER_SIZE = 1024;
