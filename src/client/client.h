@@ -16,11 +16,13 @@ public:
     std::string in_buffer;
     std::string out_buffer;
     bool want_write;
+    std::string room;
 
     Client(int _fd)
         : fd(_fd)
         , state(ClientState::STATE_NICKNAME)
         , want_write(false)
+        , room("lobby")
     {}
 
     ~Client() { if (fd != -1) close(fd); }
@@ -29,6 +31,5 @@ public:
     Client& operator=(const Client&) = delete;
 
     void queue_message(const std::string& msg, int epoll_fd);
-
     bool handle_write(int epoll_fd);
 };

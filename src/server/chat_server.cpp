@@ -169,10 +169,12 @@ void ChatServer::disconnect_client(Client* client) {
     clients_.erase(client->fd);
 }
 
-void ChatServer::broadcast(const std::string& msg, Client* sender) {
+void ChatServer::broadcast(const std::string& msg, Client* sender, const std::string& room_name) {
     for (auto& pair : clients_) {
         Client* cl = pair.second.get();
-        if (cl->state == ClientState::STATE_CHAT) {
+        if (cl->state != ClientState::STATE_CHAT) continue;
+
+        if (room_name.empty() || cl->room == room_name) {
             cl->queue_message(msg, epoll_fd_);
         }
     }
@@ -196,7 +198,7 @@ void ChatServer::process_message(Client* client, const std::string& line) {
         std::string welcome = "Добро пожаловать в чат, " + client->nickname + "!\n";
         client->queue_message(welcome, epoll_fd_);
 
-        std::string join_msg = "[SERVER]: " + client->nickname + " присоединился к чату.\n";
+        std::string join_msg = "[SERVER]: " + client->nickname + " присоединился к чату и вошёл в lobby.\n";
         broadcast(join_msg, client);
 
         //Server log

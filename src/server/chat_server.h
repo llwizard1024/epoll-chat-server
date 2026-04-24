@@ -33,7 +33,7 @@ private:
     void handle_client_read(Client* client);
     void handle_client_write(Client* client);
     void disconnect_client(Client* client);
-    void broadcast(const std::string& msg, Client* sender = nullptr);
+    void broadcast(const std::string& msg, Client* sender = nullptr, const std::string& room_name = "");
     void send_disconnect_notification(const std::string& nickname);
     void process_message(Client* client, const std::string& line);
 };
