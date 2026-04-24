@@ -1,5 +1,7 @@
 #include "client/client.h"
 
+#include <sys/epoll.h>
+
 bool Client::handle_write(int epoll_fd) {
     if (out_buffer.empty()) {
         if (want_write) {
@@ -33,6 +35,7 @@ bool Client::handle_write(int epoll_fd) {
             perror("epoll_ctl MOD (remove EPOLLOUT)");
         }
     }
+    
     return true;
 }
 

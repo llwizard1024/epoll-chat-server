@@ -1,11 +1,9 @@
 #pragma once
-#ifndef CLIENT_H
-#define CLIENT_H
 
 #include <string>
 #include <unistd.h>
 
-enum ClientState {
+enum class ClientState {
     STATE_NICKNAME,
     STATE_CHAT
 };
@@ -21,7 +19,7 @@ public:
 
     Client(int _fd)
         : fd(_fd)
-        , state(STATE_NICKNAME)
+        , state(ClientState::STATE_NICKNAME)
         , want_write(false)
     {}
 
@@ -34,5 +32,3 @@ public:
 
     bool handle_write(int epoll_fd);
 };
-
-#endif

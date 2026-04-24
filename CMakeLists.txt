@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(SOURCES
     src/main.cpp
-    src/server/server.cpp
+    src/server/chat_server.cpp
     src/client/client.cpp
     src/network/socket_utils.cpp
 )
