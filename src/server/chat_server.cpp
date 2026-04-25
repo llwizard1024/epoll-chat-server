@@ -32,8 +32,8 @@ void ChatServer::run() {
         return;
     }
 
-    std::cout << "[SERVER] Чат-сервер запущен на порту " << port_ << std::endl;
-    std::cout << "[SERVER] Ожидание подключений..." << std::endl;
+    std::cout << "[SERVER] Server is running on the port - " << port_ << std::endl;
+    std::cout << "[SERVER] Waiting for connections..." << std::endl;
 
     struct epoll_event events[ChatServer::MAX_EVENTS];
 
@@ -99,7 +99,7 @@ void ChatServer::accept_new_client() {
 
         char client_ip[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
-        std::cout << "[SERVER] Новое подключение: " << client_ip
+        std::cout << "[SERVER] New connection: " << client_ip
                   << ":" << ntohs(client_addr.sin_port) << " (fd=" << client_fd << ")" << std::endl;
 
         struct epoll_event ev;
@@ -109,7 +109,7 @@ void ChatServer::accept_new_client() {
             perror("epoll_ctl ADD client");
             clients_.erase(client_fd);
         } else {
-            std::string prompt = "Введите ваш никнейм:\n";
+            std::string prompt = "Enter your nickname:\n";
             raw_ptr->queue_message(prompt, epoll_fd_);
         }
     }
@@ -158,7 +158,7 @@ void ChatServer::handle_client_write(Client* client) {
 
 void ChatServer::disconnect_client(Client* client) {
     if (!client) return;
-    std::cout << "[SERVER] Клиент отключён: fd=" << client->fd << std::endl;
+    std::cout << "[SERVER] Client disconnected: fd=" << client->fd << std::endl;
 
     if (!client->nickname.empty()) {
         send_disconnect_notification(client->nickname);
@@ -184,7 +184,7 @@ void ChatServer::send_disconnect_notification(const std::string& nickname) {
     for (auto& pair : clients_) {
         Client* cl = pair.second.get();
         if (cl->state == ClientState::STATE_CHAT) {
-            cl->queue_message(nickname + " покинул чат\n", epoll_fd_);
+            cl->queue_message(nickname + " left the server\n", epoll_fd_);
         }
     }
 }
@@ -195,14 +195,14 @@ void ChatServer::process_message(Client* client, const std::string& line) {
         client->nickname = line;
         client->state = ClientState::STATE_CHAT;
 
-        std::string welcome = "Добро пожаловать в чат, " + client->nickname + "!\n";
+        std::string welcome = "Welcome to the chat, " + client->nickname + "!\n";
         client->queue_message(welcome, epoll_fd_);
 
-        std::string join_msg = "[SERVER]: " + client->nickname + " присоединился к чату и вошёл в lobby.\n";
+        std::string join_msg = "[SERVER]: " + client->nickname + " joined and entered the lobby.\n";
         broadcast(join_msg, client);
 
         //Server log
-        std::cout << "[SERVER] Клиент fd=" << client->fd << " установил ник: " << client->nickname << std::endl;
+        std::cout << "[SERVER] Client fd=" << client->fd << " set a nickname: " << client->nickname << std::endl;
         return;
     }
 
