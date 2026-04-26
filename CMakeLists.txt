@@ -8,6 +8,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(SOURCES
     src/main.cpp
+    src/config/config.cpp
+    src/utils/helper.cpp
     src/command/command_handler.cpp
     src/server/chat_server.cpp
     src/client/client.cpp
@@ -18,6 +20,7 @@ add_executable(chat_server ${SOURCES})
 
 target_include_directories(chat_server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_compile_options(chat_server PRIVATE -Wall -Wextra -Wpedantic)

@@ -1,11 +1,13 @@
 #include "server/chat_server.h"
+#include "config/config.h"
 
-int main(int argc, char* argv[]) {
-    int port = 8080;
+#include <spdlog/spdlog.h>
 
-    if (argc > 1) {
-        port = std::atoi(argv[1]);
-    }
+int main() {
+    Config config;
+    config.load("server.env");
+
+    int port = std::stoi(config.get("PORT", "8080"));
 
     ChatServer server(port);
     server.run();
