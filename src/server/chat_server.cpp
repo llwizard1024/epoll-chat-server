@@ -6,6 +6,9 @@
 
 #include <sys/epoll.h>
 #include <arpa/inet.h>
+#include <csignal>
+
+extern volatile sig_atomic_t keep_running;
 
 void ChatServer::run() {
     server_fd_ = create_server_socket(port_);
@@ -36,9 +39,13 @@ void ChatServer::run() {
 
     struct epoll_event events[ChatServer::MAX_EVENTS];
 
-    while (true) {
+    while (keep_running) {
         int nfds = epoll_wait(epoll_fd_, events, ChatServer::MAX_EVENTS, -1);
         if (nfds == -1) {
+            if (errno == EINTR) {
+                continue; 
+            }
+
             Logger::get()->error("epoll_wait: {}", std::strerror(errno));
             break;
         }
@@ -66,6 +73,8 @@ void ChatServer::run() {
             }
         }
     }
+
+    Logger::get()->info("Server stopped gracefully.");
 }
 
 void ChatServer::stop() {

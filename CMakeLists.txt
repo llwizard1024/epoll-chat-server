@@ -10,6 +10,7 @@ set(SOURCES
     src/main.cpp
     src/config/config.cpp
     src/core/logger.cpp
+    src/core/daemon.cpp
     src/utils/helper.cpp
     src/command/command_handler.cpp
     src/server/chat_server.cpp

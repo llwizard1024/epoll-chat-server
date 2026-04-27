@@ -19,9 +19,11 @@ void Logger::init(const std::string& filename, bool is_daemon) {
 
     logger->set_level(spdlog::level::info);
 
+    logger->info("Logger initialized.");
+    logger->flush();
+
     logger->flush_on(spdlog::level::info);
     logger->flush_on(spdlog::level::err);
-    logger->info("Logger initialized.");
 
     logger_ = logger;
 }

@@ -1,6 +1,0 @@
-[2026-04-27 11:31:05.256] [chat_server] [info] Logger initialized.
-[2026-04-27 11:31:05.257] [chat_server] [info] [SERVER] Server is running on the port - 8080
-[2026-04-27 11:31:05.257] [chat_server] [info] [SERVER] Waiting for connections...
-[2026-04-27 11:31:18.791] [chat_server] [info] [SERVER] New connection: 127.0.0.1 : 34890 (fd=6)
-[2026-04-27 11:31:20.460] [chat_server] [info] [SERVER] Client fd=6 set a nickanem Bogdan
-[2026-04-27 11:33:04.100] [chat_server] [info] [SERVER] Client disconnected: fd=6
