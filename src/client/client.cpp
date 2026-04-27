@@ -1,5 +1,7 @@
 #include "client/client.h"
 
+#include "core/logger.h"
+
 #include <sys/epoll.h>
 
 bool Client::handle_write(int epoll_fd) {
@@ -10,7 +12,7 @@ bool Client::handle_write(int epoll_fd) {
             ev.events = EPOLLIN | EPOLLET;
             ev.data.ptr = this;
             if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1) {
-                perror("epoll_ctl MOD (remove EPOLLOUT)");
+                Logger::get()->error("epoll_ctl MOD (remove EPOLLOUT): {}", std::strerror(errno));
             }
         }
         return true;
@@ -32,7 +34,7 @@ bool Client::handle_write(int epoll_fd) {
         ev.events = EPOLLIN | EPOLLET;
         ev.data.ptr = this;
         if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1) {
-            perror("epoll_ctl MOD (remove EPOLLOUT)");
+            Logger::get()->error("epoll_ctl MOD (remove EPOLLOUT): {}", std::strerror(errno));
         }
     }
     
@@ -47,7 +49,7 @@ void Client::queue_message(const std::string& msg, int epoll_fd) {
         ev.events = EPOLLIN | EPOLLOUT | EPOLLET;
         ev.data.ptr = this;
         if (epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fd, &ev) == -1) {
-            perror("epoll_ctl MOD (add EPOLLOUT)");
+            Logger::get()->error("epoll_ctl MOD (add EPOLLOUT): {}", std::strerror(errno));
         }
     }
 }

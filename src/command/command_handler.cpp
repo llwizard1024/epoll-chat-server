@@ -1,6 +1,6 @@
 #include "command/command_handler.h"
 
-#include <iostream>
+#include "core/logger.h"
 
 ParsedCommand CommandHandler::parse(const std::string& line) const {
     if (line.rfind("/msg ", 0) == 0) {
@@ -64,8 +64,8 @@ void CommandHandler::handle_plain_message(Client* client, const std::string& tex
     std::string chat_msg = "[" + client->nickname + "]: " + text + "\n";
     server_.broadcast(chat_msg, client, client->room);
 
-    //Server log
-    std::cout << "[SERVER] Сообщение от " << client->nickname << ": " << text << std::endl;
+    
+    Logger::get()->info("[SERVER] Сообщение от {} : {}", client->nickname, text);
 }
 
 void CommandHandler::handle_private_message(Client* client, const std::string& target, const std::string& text) {

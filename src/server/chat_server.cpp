@@ -2,22 +2,21 @@
 
 #include "network/socket_utils.h"
 #include "command/command_handler.h"
+#include "core/logger.h"
 
 #include <sys/epoll.h>
-#include <iostream>
 #include <arpa/inet.h>
-#include <cstdio>
 
 void ChatServer::run() {
     server_fd_ = create_server_socket(port_);
     if (server_fd_ == -1) {
-        perror("server socket create");
+        Logger::get()->error("server socket create: {}", std::strerror(errno));
         return;
     }
 
     epoll_fd_ = epoll_create1(0);
     if (epoll_fd_ == -1) {
-        perror("epoll_create1");
+        Logger::get()->error("epoll_create1: {}", std::strerror(errno));
         close(server_fd_);
         return;
     }
@@ -26,21 +25,21 @@ void ChatServer::run() {
     ev.events = EPOLLIN | EPOLLET;
     ev.data.fd = server_fd_;
     if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, server_fd_, &ev) == -1) {
-        perror("epoll_ctl ADD server_fd");
+        Logger::get()->error("epoll_ctl ADD server_fd: {}", std::strerror(errno));
         close(server_fd_);
         close(epoll_fd_);
         return;
     }
 
-    std::cout << "[SERVER] Server is running on the port - " << port_ << std::endl;
-    std::cout << "[SERVER] Waiting for connections..." << std::endl;
+    Logger::get()->info("[SERVER] Server is running on the port - {}", port_);
+    Logger::get()->info("[SERVER] Waiting for connections...");
 
     struct epoll_event events[ChatServer::MAX_EVENTS];
 
     while (true) {
         int nfds = epoll_wait(epoll_fd_, events, ChatServer::MAX_EVENTS, -1);
         if (nfds == -1) {
-            perror("epoll_wait");
+            Logger::get()->error("epoll_wait: {}", std::strerror(errno));
             break;
         }
 
@@ -83,13 +82,13 @@ void ChatServer::accept_new_client() {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 break;
             } else {
-                perror("accept");
+                Logger::get()->error("accept: {}", std::strerror(errno));
                 break;
             }
         }
 
         if (!set_nonblocking(client_fd)) {
-            perror("set_nonblocking client_fd");
+            Logger::get()->error("set_nonblocking client_fd: {}", std::strerror(errno));
             close(client_fd);
             continue;
         }
@@ -99,14 +98,15 @@ void ChatServer::accept_new_client() {
 
         char client_ip[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
-        std::cout << "[SERVER] New connection: " << client_ip
-                  << ":" << ntohs(client_addr.sin_port) << " (fd=" << client_fd << ")" << std::endl;
+
+        Logger::get()->info("[SERVER] New connection: {} : {} (fd={})", 
+            client_ip, ntohs(client_addr.sin_port), client_fd);
 
         struct epoll_event ev;
         ev.events = EPOLLIN | EPOLLET;
         ev.data.ptr = raw_ptr;
         if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
-            perror("epoll_ctl ADD client");
+            Logger::get()->error("epoll_ctl ADD client: {}", std::strerror(errno));
             clients_.erase(client_fd);
         } else {
             std::string prompt = "Enter your nickname:\n";
@@ -123,7 +123,7 @@ void ChatServer::handle_client_read(Client* client) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 break;
             } else {
-                perror("read");
+                Logger::get()->error("read: {}", std::strerror(errno));
                 disconnect_client(client);
                 return;
             }
@@ -158,7 +158,8 @@ void ChatServer::handle_client_write(Client* client) {
 
 void ChatServer::disconnect_client(Client* client) {
     if (!client) return;
-    std::cout << "[SERVER] Client disconnected: fd=" << client->fd << std::endl;
+
+    Logger::get()->info("[SERVER] Client disconnected: fd={}", client->fd);
 
     if (!client->nickname.empty()) {
         send_disconnect_notification(client->nickname);
@@ -201,8 +202,7 @@ void ChatServer::process_message(Client* client, const std::string& line) {
         std::string join_msg = "[SERVER]: " + client->nickname + " joined and entered the lobby.\n";
         broadcast(join_msg, client);
 
-        //Server log
-        std::cout << "[SERVER] Client fd=" << client->fd << " set a nickname: " << client->nickname << std::endl;
+        Logger::get()->info("[SERVER] Client fd={} set a nickanem {}", client->fd, client->nickname);
         return;
     }
 

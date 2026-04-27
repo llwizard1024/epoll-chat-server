@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(SOURCES
     src/main.cpp
     src/config/config.cpp
+    src/core/logger.cpp
     src/utils/helper.cpp
     src/command/command_handler.cpp
     src/server/chat_server.cpp

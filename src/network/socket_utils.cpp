@@ -1,11 +1,11 @@
 #include "network/socket_utils.h"
 
+#include "core/logger.h"
+
 #include <fcntl.h>
 #include <sys/socket.h>
-#include <cstdio>
 #include <unistd.h>
 #include <netinet/in.h>
-#include <cstring>
 
 bool set_nonblocking(int fd) {
     int flags = fcntl(fd, F_GETFL, 0);
@@ -16,13 +16,13 @@ bool set_nonblocking(int fd) {
 int create_server_socket(int port) {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == -1) {
-        perror("socket");
+        Logger::get()->error("socket: {}", std::strerror(errno));
         return -1;
     }
 
     int opt = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-        perror("setsockopt");
+        Logger::get()->error("setsockopt: {}", std::strerror(errno));
         close(server_fd);
         return -1;
     }
@@ -34,19 +34,19 @@ int create_server_socket(int port) {
     address.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(server_fd, (struct sockaddr*)&address, sizeof(address)) == -1) {
-        perror("bind");
+        Logger::get()->error("bind: {}", std::strerror(errno));
         close(server_fd);
         return -1;
     }
 
     if (listen(server_fd, SOMAXCONN) == -1) {
-        perror("listen");
+        Logger::get()->error("listen: {}", std::strerror(errno));
         close(server_fd);
         return -1;
     }
 
     if (!set_nonblocking(server_fd)) {
-        perror("set_nonblocking server_fd");
+        Logger::get()->error("set_nonblocking server_fd: {}", std::strerror(errno));
         close(server_fd);
         return -1;
     }
