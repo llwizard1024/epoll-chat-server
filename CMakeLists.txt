@@ -1,13 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
-project(chat-server VERSION 0.0.1 LANGUAGES CXX)
+project(chat-server VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-
-set(SOURCES
-    src/main.cpp
+add_library(chat_lib STATIC
     src/config/config.cpp
     src/core/logger.cpp
     src/core/daemon.cpp
@@ -18,11 +16,26 @@ set(SOURCES
     src/network/socket_utils.cpp
 )
 
-add_executable(chat_server ${SOURCES})
-
-target_include_directories(chat_server PRIVATE
+target_include_directories(chat_lib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_compile_options(chat_server PRIVATE -Wall -Wextra -Wpedantic)
+target_compile_options(chat_lib PRIVATE -Wall -Wextra -Wpedantic)
+
+add_executable(chat_server src/main.cpp)
+target_link_libraries(chat_server PRIVATE chat_lib)
+
+
+enable_testing()
+
+add_executable(chat_tests
+    external/catch2/catch_amalgamated.cpp
+    tests/test_main.cpp
+    tests/test_config.cpp
+)
+
+target_link_libraries(chat_tests PRIVATE chat_lib)
+target_include_directories(chat_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/external
+)
