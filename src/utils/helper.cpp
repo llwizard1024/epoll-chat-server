@@ -17,6 +17,8 @@ void trim_string(std::string& str) {
 
     str.erase(0, start_index);
 
+    if (str.empty()) return;
+
     int end_index = str.size();
     
     for (size_t i = str.size() - 1; i > 0; --i) {
