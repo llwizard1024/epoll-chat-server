@@ -11,6 +11,7 @@ add_library(chat_lib STATIC
     src/core/daemon.cpp
     src/utils/helper.cpp
     src/command/command_handler.cpp
+    src/command/command_parser.cpp
     src/server/chat_server.cpp
     src/client/client.cpp
     src/network/socket_utils.cpp
@@ -33,6 +34,8 @@ add_executable(chat_tests
     external/catch2/catch_amalgamated.cpp
     tests/test_main.cpp
     tests/test_config.cpp
+    tests/test_command_parser.cpp
+    tests/test_utils.cpp
 )
 
 target_link_libraries(chat_tests PRIVATE chat_lib)
