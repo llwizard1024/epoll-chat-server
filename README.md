@@ -1,3 +1,4 @@
+![Build Status](https://github.com/llwizard1024/epoll-chat-server/actions/workflows/build_and_test.yml/badge.svg)
 # epoll-chat-server 🚀
 
 An asynchronous multi-user TCP chat server written in modern C++ using epoll, non-blocking sockets, and a simple text-based protocol. It supports chat rooms, private messages, daemonization, and file logging.
