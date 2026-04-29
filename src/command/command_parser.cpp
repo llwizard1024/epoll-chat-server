@@ -36,6 +36,10 @@ ParsedCommand parse_online_list(const std::string& line) {
     return ParsedCommand{ParsedCommand::ONLINE_LIST, "", ""};
 }
 
+ParsedCommand parse_room_list(const std::string& line) {
+    return ParsedCommand{ParsedCommand::ROOM_LIST, "", ""};
+}
+
 ParsedCommand parse(const std::string& line) {
     if (line.rfind("/msg ", 0) == 0) {
         return parse_private_message(line);
@@ -45,6 +49,8 @@ ParsedCommand parse(const std::string& line) {
         return parse_leave_room(line);
     } else if (line.rfind("/online", 0) == 0) {
         return parse_online_list(line);
+    } else if (line.rfind("/rooms", 0) == 0) {
+        return parse_room_list(line);
     }
     
     return ParsedCommand{ParsedCommand::PLAIN_MESSAGE, "", line};

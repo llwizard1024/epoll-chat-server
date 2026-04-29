@@ -11,6 +11,7 @@ struct ParsedCommand {
         JOIN_ROOM,
         LEAVE_ROOM,
         ONLINE_LIST,
+        ROOM_LIST,
         UNKNOWN
     };
 
@@ -30,4 +31,5 @@ private:
     void handle_join_room(Client* client, const std::string& room_name);
     void handle_leave_room(Client* client);
     void handle_online_list(Client* client);
+    void handle_rooms_list(Client* client);
 };

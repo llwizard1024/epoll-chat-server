@@ -14,6 +14,7 @@ add_library(chat_lib STATIC
     src/command/command_parser.cpp
     src/server/chat_server.cpp
     src/client/client.cpp
+    src/room/room.cpp
     src/network/socket_utils.cpp
 )
 

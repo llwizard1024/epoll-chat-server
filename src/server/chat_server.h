@@ -1,6 +1,7 @@
 #pragma once
 
 #include "client/client.h"
+#include "room/room.h"
 
 #include <memory>
 #include <unordered_map>
@@ -10,6 +11,7 @@ class ChatServer {
     int epoll_fd_;
     int port_;
     std::unordered_map<int, std::unique_ptr<Client>> clients_;
+    std::unordered_map<std::string, std::unique_ptr<Room>> rooms_;
 
     friend class CommandHandler;
 public:
@@ -36,4 +38,7 @@ private:
     void broadcast(const std::string& msg, Client* sender = nullptr, const std::string& room_name = "");
     void send_disconnect_notification(const std::string& nickname);
     void process_message(Client* client, const std::string& line);
+
+    void join_room(Client* client, const std::string& new_room);
+    void leave_room(Client* client);
 };

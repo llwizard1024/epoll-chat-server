@@ -3,6 +3,7 @@
 #include "network/socket_utils.h"
 #include "command/command_handler.h"
 #include "core/logger.h"
+#include "utils/helper.h"
 
 #include <sys/epoll.h>
 #include <arpa/inet.h>
@@ -33,6 +34,9 @@ void ChatServer::run() {
         close(epoll_fd_);
         return;
     }
+
+    // Init lobby room
+    rooms_["lobby"] = std::make_unique<Room>("lobby", "");
 
     Logger::get()->info("[SERVER] Server is running on the port - {}", port_);
     Logger::get()->info("[SERVER] Waiting for connections...");
@@ -118,7 +122,7 @@ void ChatServer::accept_new_client() {
             Logger::get()->error("epoll_ctl ADD client: {}", std::strerror(errno));
             clients_.erase(client_fd);
         } else {
-            std::string prompt = "Enter your nickname:\n";
+            std::string prompt = "Enter your nickname: ";
             raw_ptr->queue_message(prompt, epoll_fd_);
         }
     }
@@ -155,6 +159,8 @@ void ChatServer::handle_client_read(Client* client) {
 
             if (line.empty()) continue;
 
+            trim_string(line);
+
             process_message(client, line);
         }
     }
@@ -167,6 +173,8 @@ void ChatServer::handle_client_write(Client* client) {
 
 void ChatServer::disconnect_client(Client* client) {
     if (!client) return;
+
+    leave_room(client);
 
     Logger::get()->info("[SERVER] Client disconnected: fd={}", client->fd);
 
@@ -184,7 +192,7 @@ void ChatServer::broadcast(const std::string& msg, Client* sender, const std::st
         Client* cl = pair.second.get();
         if (cl->state != ClientState::STATE_CHAT) continue;
 
-        if (room_name.empty() || cl->room == room_name) {
+        if (room_name.empty() || cl->room_ == room_name) {
             cl->queue_message(msg, epoll_fd_);
         }
     }
@@ -204,17 +212,84 @@ void ChatServer::process_message(Client* client, const std::string& line) {
     if (client->state == ClientState::STATE_NICKNAME) {
         client->nickname = line;
         client->state = ClientState::STATE_CHAT;
+        
+        join_room(client, "lobby");
 
         std::string welcome = "Welcome to the chat, " + client->nickname + "!\n";
         client->queue_message(welcome, epoll_fd_);
 
-        std::string join_msg = "[SERVER]: " + client->nickname + " joined and entered the lobby.\n";
-        broadcast(join_msg, client);
-
         Logger::get()->info("[SERVER] Client fd={} set a nickanem {}", client->fd, client->nickname);
         return;
+    } else if (client->state == ClientState::STATE_SETUP_ROOM_PASSWORD) { // setup room password (first connect by owner)
+        join_room(client, client->connected_room_);
+
+        rooms_.at(client->room_)->setPassword(line);
+        client->state = ClientState::STATE_CHAT;
+        client->queue_message("Password success setup, welcome to room!\n", epoll_fd_);
+        return;
+    } else if (client->state == ClientState::STATE_ENTER_ROOM_PASSWORD) { // enter password, connect after create
+        if (rooms_.count(client->connected_room_) == 0) {
+            client->state = ClientState::STATE_CHAT;
+
+            client->queue_message("The room has been deleted.\n", epoll_fd_);
+            return;
+        } 
+
+        if (rooms_.at(client->connected_room_).get()->verification_password(line)) {
+            join_room(client, client->connected_room_);
+
+            client->state = ClientState::STATE_CHAT;
+            client->queue_message("Password success! Welcome to room.\n", epoll_fd_);
+            return;
+        } else {
+            client->state = ClientState::STATE_CHAT;
+
+            client->queue_message("Incorrect password! Failed to join the room.\n", epoll_fd_);
+            return;
+        }
     }
 
     CommandHandler handler(*this);
     handler.execute(client, line);
+}
+
+void ChatServer::join_room(Client* client, const std::string& new_room) {
+    if (!client->room_.empty() && rooms_.count(client->room_) > 0) {
+        std::string left_msg = "[SERVER]: " + client->nickname + " left the room " + "[" + client->room_ + "]" + ".\n";
+        broadcast(left_msg, client, client->room_);
+        rooms_[client->room_]->decrease_user_counter();
+
+        if (rooms_[client->room_]->getUserCount() == 0 && client->room_ != "lobby") {
+            rooms_.erase(client->room_);
+        }
+    }
+
+    if (rooms_.count(new_room) == 0) {
+        rooms_[new_room] = std::make_unique<Room>(new_room, "");
+    }
+
+    rooms_[new_room]->increase_user_counter();
+    
+    client->room_ = new_room;
+    client->connected_room_ = "";
+
+    std::string join_msg = "[SERVER]: " + client->nickname + " joined the room " + "[" + client->room_ + "]" + ".\n"; 
+    broadcast(join_msg, client, client->room_);
+}
+
+void ChatServer::leave_room(Client* client) {
+    if (client->room_.empty() || rooms_.count(client->room_) == 0) {
+        return;
+    }
+    std::string left_msg = "[SERVER]: " + client->nickname + " left the room " + "[" + client->room_ + "]" + ".\n";
+    broadcast(left_msg, client, client->room_);
+
+    rooms_[client->room_]->decrease_user_counter();
+
+    if (rooms_[client->room_]->getUserCount() == 0 && client->room_ != "lobby") {
+        rooms_.erase(client->room_);
+    }
+
+    client->room_.clear();
+    client->connected_room_ = "";
 }

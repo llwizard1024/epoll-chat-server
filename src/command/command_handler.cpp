@@ -22,12 +22,15 @@ void CommandHandler::execute(Client* client, const std::string& line) {
         case ParsedCommand::ONLINE_LIST:
             handle_online_list(client);
             break;
+        case ParsedCommand::ROOM_LIST:
+            handle_rooms_list(client);
+            break;
     }
 }
 
 void CommandHandler::handle_plain_message(Client* client, const std::string& text) {
     std::string chat_msg = "[" + client->nickname + "]: " + text + "\n";
-    server_.broadcast(chat_msg, client, client->room);
+    server_.broadcast(chat_msg, client, client->room_);
 
     
     Logger::get()->info("[SERVER] Сообщение от {} : {}", client->nickname, text);
@@ -51,45 +54,60 @@ void CommandHandler::handle_private_message(Client* client, const std::string& t
 }
 
 void CommandHandler::handle_join_room(Client* client, const std::string& room_name) {
-    if (client->room == room_name) {
+    if (client->room_ == room_name) {
         client->queue_message("[SERVER] You are already in this room.\n", server_.epoll_fd_);
         return;
     }
 
-    std::string old_room_name = client->room;
-    client->room = room_name;
+    // Room not found, neet create and set password, after this connect to room
+    if (server_.rooms_.count(room_name) == 0) {
+        client->state = ClientState::STATE_SETUP_ROOM_PASSWORD;
+        client->connected_room_ = room_name;
+        client->queue_message("Create room password: ", server_.epoll_fd_);
+        return;
+    } 
+    
+    bool room_password_is_empty = server_.rooms_.at(room_name)->verification_password("");
 
-    std::string msg_quit = "[SERVER]: " + client->nickname + " left the room.\n";
-    server_.broadcast(msg_quit, client, old_room_name);
-
-    std::string msg_enter = "[SERVER]: " + client->nickname + " joined the room.\n";
-    server_.broadcast(msg_enter, client, room_name);
+    if (room_password_is_empty) {
+        server_.join_room(client, room_name);
+        return;
+    } else {
+        client->state = ClientState::STATE_ENTER_ROOM_PASSWORD;
+        client->connected_room_ = room_name;
+        client->queue_message("Pls, enter room password: ", server_.epoll_fd_);
+        return;
+    }
 }
 
 void CommandHandler::handle_leave_room(Client* client) {
-    if (client->room == "lobby") {
+    if (client->room_ == "lobby") {
         client->queue_message("[SERVER] You are in lobby.\n", server_.epoll_fd_);
         return;
     }
 
-    std::string old_room_name = client->room;
-    client->room = "lobby";
-
-    std::string msg_quit = "[SERVER]: " + client->nickname + " left the room.\n";
-    server_.broadcast(msg_quit, client, old_room_name);
-
-    std::string msg_enter = "[SERVER]: " + client->nickname + " joined the lobby.\n";
-    server_.broadcast(msg_enter, client, "lobby");
+    server_.join_room(client, "lobby");
 }
 
 void CommandHandler::handle_online_list(Client* client) {
-    std::string list = "Users in room '" + client->room + "': ";
+    std::string list = "Users in room '" + client->room_ + "': ";
 
     for (const auto& pair : server_.clients_) {
         Client* cl = pair.second.get();
-        if (cl->room == client->room) {
+        if (cl->room_ == client->room_) {
             list.append(cl->nickname + " ");
         }
+    }
+
+    client->queue_message(list + "\n", server_.epoll_fd_);
+}
+
+void CommandHandler::handle_rooms_list(Client* client) {
+    std::string list = "Rooms list: ";
+
+    for (const auto& pair : server_.rooms_) {
+        Room* room = pair.second.get();
+        list.append(room->getName() + "[" + std::to_string(room->getUserCount()) + "] ");
     }
 
     client->queue_message(list + "\n", server_.epoll_fd_);
